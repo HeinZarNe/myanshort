@@ -12,10 +12,7 @@ app.use(cors());
 app.use(express.json());
 
 mongoose
-  .connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
+  .connect(process.env.MONGO_URI)
   .then((_) => console.log("Mongodb is connected"))
   .catch((err) => console.error(err));
 
@@ -25,6 +22,10 @@ const urlSchema = new mongoose.Schema({
 });
 
 const Url = mongoose.model("Url", urlSchema);
+
+app.get("/", async (req, res) => {
+  res.json("Hello");
+});
 
 //POST
 app.post("/shorten", async (req, res) => {
@@ -38,7 +39,7 @@ app.post("/shorten", async (req, res) => {
   const newUrl = new Url({ shortId, originalUrl });
   try {
     await newUrl.save();
-    res.json({ shortUrl: `${req.headers.host}/${shortId}` });
+    res.json({ shortId });
   } catch (err) {
     if (err.code === 11000) {
       res.status(409).json({ message: "Url already exist" });
@@ -55,7 +56,7 @@ app.get("/:shortId", async (req, res) => {
   try {
     const entry = await Url.findOne({ shortId });
     if (entry) {
-      res.redirect(entry.originalUrl);
+      res.json({ originalUrl: entry.originalUrl });
     } else {
       res.status(404).json({ message: "URL not found" });
     }
