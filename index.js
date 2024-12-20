@@ -19,6 +19,7 @@ mongoose
 const urlSchema = new mongoose.Schema({
   shortId: { type: String },
   originalUrl: { type: String, unique: true },
+  clicks: { type: Number, default: 0 },
 });
 
 const Url = mongoose.model("Url", urlSchema);
@@ -56,7 +57,9 @@ app.get("/:shortId", async (req, res) => {
   try {
     const entry = await Url.findOne({ shortId });
     if (entry) {
-      res.json({ originalUrl: entry.originalUrl });
+      entry.clicks += 1;
+      await entry.save();
+      res.redirect(entry.originalUrl);
     } else {
       res.status(404).json({ message: "URL not found" });
     }
