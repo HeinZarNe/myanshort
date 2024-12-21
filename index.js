@@ -4,6 +4,8 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const shortid = require("shortid");
 const validator = require("validator");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -16,11 +18,14 @@ mongoose
   .then(() => console.log("Mongodb is connected"))
   .catch((err) => console.error("Mongodb connection error:", err));
 
-const urlSchema = new mongoose.Schema({
-  shortId: { type: String },
-  originalUrl: { type: String, unique: true },
-  clicks: { type: Number, default: 0 },
-});
+const urlSchema = new mongoose.Schema(
+  {
+    shortId: { type: String },
+    originalUrl: { type: String, unique: true },
+    clicks: { type: Number, default: 0 },
+  },
+  { timestamps: { createdAt: "createdAt" } }
+);
 
 const Url = mongoose.model("Url", urlSchema);
 
@@ -28,9 +33,39 @@ app.get("/", async (req, res) => {
   res.json("Hello");
 });
 
+app.get("/api/click_count/:shortId", async (req, res) => {
+  const { shortId } = req.params;
+  try {
+    const entry = await Url.findOne({ shortId });
+    if (entry) {
+      res.json({ clicks: entry.clicks });
+    } else {
+      res.status(404).json({ message: "URL not found" });
+    }
+  } catch (err) {
+    console.error("Error finding URL:", err);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+app.get("/api/adlink", async (req, res) => {
+  try {
+    const entry = await Url.find({}).sort({ _id: -1 });
+    res.json(entry);
+  } catch (err) {
+    console.error("Error getting URL:", err);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
 // POST
-app.post("/shorten", async (req, res) => {
-  const { originalUrl } = req.body;
+app.post("/api/shorten", async (req, res) => {
+  let { originalUrl } = req.body;
+
+  // Ensure originalUrl starts with http or https
+  if (!/^https?:\/\//i.test(originalUrl)) {
+    originalUrl = `http://${originalUrl}`;
+  }
+
   if (!validator.isURL(originalUrl)) {
     console.error("Invalid Url");
     return res.status(400).json({ message: "Invalid URL" });
@@ -52,7 +87,7 @@ app.post("/shorten", async (req, res) => {
 });
 
 // GET
-app.get("/:shortId", async (req, res) => {
+app.get("/api/:shortId", async (req, res) => {
   const { shortId } = req.params;
   try {
     const entry = await Url.findOne({ shortId });
@@ -65,6 +100,21 @@ app.get("/:shortId", async (req, res) => {
     }
   } catch (err) {
     console.error("Error finding URL:", err);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+app.delete("/api/adLink/:shortId", async (req, res) => {
+  const { shortId } = req.params;
+  try {
+    const entry = await Url.deleteOne({ shortId });
+    if (entry) {
+      res.status(202).json({ message: "Deleted successfully" });
+    } else {
+      res.status(404).json({ message: "URL not found" });
+    }
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "Internal Server Error" });
   }
 });
