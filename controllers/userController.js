@@ -1,3 +1,8 @@
 exports.getProfile = (req, res) => {
-  res.json(req.user);
+  console.log(req.user);
+  res.json({
+    username: req.user.username,
+    email: req.user.email,
+    id: req.user.id,
+  });
 };
