@@ -3,6 +3,7 @@ const nodemailer = require("nodemailer");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const User = require("../models/userModel");
+const { google } = require("googleapis");
 const transporter = nodemailer.createTransport({
   service: "Gmail",
   auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
@@ -29,18 +30,41 @@ const sendVerificationEmail = (user, req, res) => {
   );
 };
 
-exports.googleLogin = passport.authenticate("google", {
-  scope: ["profile", "email"],
-});
+// exports.googleLogin = async (req, res) => {
+//   const oauth2Client = new google.auth.OAuth2(
+//     process.env.GOOGLE_CLIENT_ID,
+//     process.env.GOOGLE_CLIENT_SECRET,
+//     "http://localhost:3000/api/auth/google/callback"
+//   );
 
-exports.googleCallback = (req, res) => {
+//   const authUrl = oauth2Client.generateAuthUrl({
+//     scope: ["profile", "email"],
+//   });
+//   z;
+//   res.redirect(authUrl);
+// };
+
+exports.googleCallback = async (req, res, next) => {
+  const user = req.user;
+  const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+    expiresIn: "1h",
+  });
+  const refreshToken = jwt.sign(
+    { userId: user._id },
+    process.env.JWT_REFRESH_SECRET,
+    { expiresIn: "7d" }
+  );
+  const responseObj = {
+    token,
+    refreshToken,
+    user: { username: user.username, email: user.email, id: user._id },
+  };
   res.redirect(
-    `http://localhost:5173/profile?user=${encodeURIComponent(
-      JSON.stringify(req.user)
+    `http://localhost:5173/auth/google/callback?user=${encodeURIComponent(
+      JSON.stringify(responseObj)
     )}`
   );
 };
-
 exports.register = async (req, res) => {
   const { email, password, username } = req.body;
   const hashedPassword = await bcrypt.hash(password, 10);
@@ -92,7 +116,7 @@ exports.login = async (req, res) => {
         message: "Login successful",
         token,
         refreshToken,
-        user: { username: user.username, email: user.email },
+        user: { username: user.username, email: user.email, id: user._id },
       });
     } else {
       res.status(401).json({ message: "Invalid email/username or password" });
@@ -121,6 +145,7 @@ exports.refreshToken = async (req, res) => {
     res.status(403).json({ message: "Invalid or expired refresh token" });
   }
 };
+
 exports.verify_email = async (req, res) => {
   const { token } = req.query;
   try {
@@ -140,7 +165,7 @@ exports.verify_email = async (req, res) => {
         .redirect(`${process.env.FRONTEND_API}verify-email`);
     }
 
-    res.redirect(`${process.env.FRONTEND_API}login`);
+    res.redirect(`${process.env.FRONTEND_API}login?message=Verified`);
   } catch (err) {
     console.error(err);
     res.status(400).send("Invalid or expired token");
