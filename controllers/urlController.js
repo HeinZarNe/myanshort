@@ -1,21 +1,16 @@
 const Url = require("../models/urlModel");
 const shortid = require("shortid");
 const validator = require("validator");
-
 exports.shortenUrl = async (req, res) => {
   let { originalUrl, userId } = req.body;
-
   if (!/^https?:\/\//i.test(originalUrl)) {
-    originalUrl = `http://${originalUrl}`;
+    originalUrl = `https://${originalUrl}`;
   }
-
   if (!validator.isURL(originalUrl)) {
     return res.status(400).json({ message: "Invalid URL" });
   }
-
   const shortId = shortid.generate();
   const newUrl = new Url({ shortId, originalUrl, userId });
-
   try {
     await newUrl.save();
     res.json({ shortId });
@@ -30,23 +25,23 @@ exports.shortenUrl = async (req, res) => {
 
 exports.redirectUrl = async (req, res) => {
   const { shortId } = req.params;
-
   try {
-    const entry = await Url.findOne({ shortId });
+    const entry = await Url.findOneAndUpdate({ shortId }, { userLoa });
     if (entry) {
       entry.clicks += 1;
       await entry.save();
       res.redirect(entry.originalUrl);
     } else {
-      res.status(404).json({ message: "URL not found" });
+      res.redirect(`${process.env.FRONTEND_API}?error=Url is expired`);
     }
   } catch (err) {
     res.status(500).json({ message: "Internal Server Error" });
+    console.error(err);
   }
 };
+
 exports.deleteUrl = async (req, res) => {
   const { shortId } = req.params;
-
   try {
     const entry = await Url.findOneAndDelete({ shortId });
     if (entry) {
@@ -61,10 +56,13 @@ exports.deleteUrl = async (req, res) => {
 
 exports.getAllUrls = async (req, res) => {
   try {
-    const urls = await Url.find({ userId: req.user.userId });
+    const urls = await Url.find({ userId: req.user.userId }).sort({
+      createdAt: -1,
+    });
 
     res.json(urls);
   } catch (err) {
     res.status(500).json({ message: "Internal Server Error" });
+    console.error(err);
   }
 };

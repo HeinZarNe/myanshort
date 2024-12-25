@@ -10,13 +10,14 @@ router.get(
 router.get(
   "/google/callback",
   passport.authenticate("google", {
-    failureRedirect: "/",
+    failureRedirect: "/api/auth/google/handle-error",
   }),
   authController.googleCallback
 );
 router.post("/register", authController.register);
 router.post("/login", authController.login);
 router.post("/refresh-token", authController.refreshToken);
+router.get("/google/handle-error", authController.googleHandleError);
 router.get("/request-email-verify", authController.requestNewVerificationEmail);
 router.get("/logout", authController.logout);
 router.get("/verify-email", authController.verify_email);

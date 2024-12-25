@@ -92,6 +92,14 @@ exports.register = async (req, res) => {
   }
 };
 
+exports.googleHandleError = async (req, res) => {
+  const errorMessage = req.session.authError || "Verification failed";
+  delete req.session.authError;
+  res.redirect(
+    `${process.env.FRONTEND_API}login?error=${encodeURIComponent(errorMessage)}`
+  );
+};
+
 exports.login = async (req, res) => {
   const { usernameOrEmail, password } = req.body;
   try {

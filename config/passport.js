@@ -8,8 +8,9 @@ const passportConfig = (passport) => {
         clientID: process.env.GOOGLE_CLIENT_ID,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
         callbackURL: `http://localhost:3000/api/auth/google/callback`,
+        passReqToCallback: true, // Enables `req` as the first argument
       },
-      async (accessToken, refreshToken, profile, done) => {
+      async (req, accessToken, refreshToken, profile, done) => {
         try {
           // Check if a user with the same Google ID exists
           let user = await User.findOne({ googleId: profile.id });
@@ -21,9 +22,8 @@ const passportConfig = (passport) => {
 
             if (existingUser) {
               // If a user with the same email exists, return a message
-              return done(null, false, {
-                message: "User with this email already exists",
-              });
+              req.session.authError = "User with this email already exists";
+              return done(null, false);
             } else {
               // Create a new user if no conflict
               user = await User.create({
