@@ -3,13 +3,13 @@ const nodemailer = require("nodemailer");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const User = require("../models/userModel");
-const { google } = require("googleapis");
 const transporter = nodemailer.createTransport({
   service: "Gmail",
   auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
 });
 
 const sendVerificationEmail = (user, req, res) => {
+  console.log("email is sending");
   const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
     expiresIn: "1d",
   });

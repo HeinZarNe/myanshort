@@ -9,7 +9,7 @@ const passportConfig = require("./config/passport.js");
 const authRoutes = require("./routes/authRoutes.js");
 const urlRoutes = require("./routes/urlRoutes.js");
 const userRoutes = require("./routes/userRoutes.js");
-
+const MongoStore = require("connect-mongo");
 const app = express();
 
 // Database Connection
@@ -23,6 +23,13 @@ app.use(
     secret: process.env.SESSION_SECRET || "secret",
     resave: false,
     saveUninitialized: true,
+    store: MongoStore.create({
+      mongoUrl: process.env.MONGO_URI,
+      collectionName: "sessions",
+    }),
+    cookie: {
+      maxAge: 1000 * 60 * 60 * 24,
+    },
   })
 );
 app.use(passport.initialize());
