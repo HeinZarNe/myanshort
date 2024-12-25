@@ -33,7 +33,7 @@ exports.redirectUrl = async (req, res) => {
       await entry.save();
       res.redirect(entry.originalUrl);
     } else {
-      res.redirect(`${process.env.FRONTEND_URL}?error=Url is expired`);
+      res.redirect(`${process.env.FRONTEND_URL}expired-url`);
     }
   } catch (err) {
     res.status(500).json({ message: "Internal Server Error" });

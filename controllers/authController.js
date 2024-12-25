@@ -16,8 +16,9 @@ const sendVerificationEmail = (user, req, res) => {
   const url = `${process.env.APP_URL}auth/verify-email?token=${token}`;
   transporter.sendMail(
     {
+      from: `"MyanAd" <${process.env.EMAIL_USER}>`,
       to: user.email,
-      subject: "Verify your email",
+      subject: "Verify your email- MyanAd",
       html: `<!DOCTYPE html>
 <html>
 <head>
@@ -60,7 +61,7 @@ const sendVerificationEmail = (user, req, res) => {
         .verify-button {
             display: inline-block;
             background-color: #007BFF;
-            color: #ffffff;
+            color: #ffffff !important;
             text-decoration: none;
             padding: 10px 20px;
             border-radius: 4px;
