@@ -6,7 +6,7 @@ const passportConfig = (passport) => {
       {
         clientID: process.env.GOOGLE_CLIENT_ID,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        callbackURL: `${process.env.APP_URL}api/auth/google/callback`,
+        callbackURL: `${process.env.APP_URL}auth/google/callback`,
         passReqToCallback: true, // Enables `req` as the first argument
       },
       async (req, accessToken, refreshToken, profile, done) => {
