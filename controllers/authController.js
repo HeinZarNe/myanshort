@@ -18,7 +18,80 @@ const sendVerificationEmail = (user, req, res) => {
     {
       to: user.email,
       subject: "Verify your email",
-      html: `Click <a href="${url}">here</a> to verify your email.`,
+      html: `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Verification</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 0;
+            color: #333333;
+        }
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+            background: #ffffff;
+            border: 1px solid #dddddd;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #007BFF;
+            margin-bottom: 20px;
+        }
+        .content {
+            font-size: 16px;
+            line-height: 1.6;
+            text-align: center;
+        }
+        .button-container {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .verify-button {
+            display: inline-block;
+            background-color: #007BFF;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .footer {
+            margin-top: 30px;
+            font-size: 12px;
+            text-align: center;
+            color: #aaaaaa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">Verify Your Email Address</div>
+        <div class="content">
+            <p>Hello,</p>
+            <p>Thank you for signing up! Please verify your email address by clicking the button below:</p>
+            <div class="button-container">
+                <a href="${url}" class="verify-button">Verify Email</a>
+            </div>
+            <p>If you did not sign up, you can safely ignore this email.</p>
+        </div>
+        <div class="footer">
+            &copy; 2024 MyanAd. All rights reserved.
+        </div>
+    </div>
+</body>
+</html>`,
     },
     (err, info) => {
       if (err) {
