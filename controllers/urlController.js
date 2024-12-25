@@ -19,6 +19,7 @@ exports.shortenUrl = async (req, res) => {
       res.status(409).json({ message: "URL already exists" });
     } else {
       res.status(500).json({ message: "Internal Server Error" });
+      console.error(err);
     }
   }
 };
@@ -26,13 +27,13 @@ exports.shortenUrl = async (req, res) => {
 exports.redirectUrl = async (req, res) => {
   const { shortId } = req.params;
   try {
-    const entry = await Url.findOneAndUpdate({ shortId }, { userLoa });
+    const entry = await Url.findOne({ shortId });
     if (entry) {
       entry.clicks += 1;
       await entry.save();
       res.redirect(entry.originalUrl);
     } else {
-      res.redirect(`${process.env.FRONTEND_API}?error=Url is expired`);
+      res.redirect(`${process.env.FRONTEND_URL}?error=Url is expired`);
     }
   } catch (err) {
     res.status(500).json({ message: "Internal Server Error" });

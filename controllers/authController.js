@@ -13,7 +13,7 @@ const sendVerificationEmail = (user, req, res) => {
   const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
     expiresIn: "1d",
   });
-  const url = `http://localhost:3000/api/auth/verify-email?token=${token}`;
+  const url = `${process.env.APP_URL}api/auth/verify-email?token=${token}`;
   transporter.sendMail(
     {
       to: user.email,
@@ -60,7 +60,7 @@ exports.googleCallback = async (req, res, next) => {
     user: { username: user.username, email: user.email, id: user._id },
   };
   res.redirect(
-    `http://localhost:5173/auth/google/callback?user=${encodeURIComponent(
+    `${process.env.FRONTEND_URL}auth/google/callback?user=${encodeURIComponent(
       JSON.stringify(responseObj)
     )}`
   );
@@ -96,7 +96,7 @@ exports.googleHandleError = async (req, res) => {
   const errorMessage = req.session.authError || "Verification failed";
   delete req.session.authError;
   res.redirect(
-    `${process.env.FRONTEND_API}login?error=${encodeURIComponent(errorMessage)}`
+    `${process.env.FRONTEND_URL}login?error=${encodeURIComponent(errorMessage)}`
   );
 };
 
@@ -170,10 +170,10 @@ exports.verify_email = async (req, res) => {
     if (!entry) {
       return res
         .status(404)
-        .redirect(`${process.env.FRONTEND_API}verify-email`);
+        .redirect(`${process.env.FRONTEND_URL}verify-email`);
     }
 
-    res.redirect(`${process.env.FRONTEND_API}login?message=Verified`);
+    res.redirect(`${process.env.FRONTEND_URL}login?message=Verified`);
   } catch (err) {
     console.error(err);
     res.status(400).send("Invalid or expired token");
