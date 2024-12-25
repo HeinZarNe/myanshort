@@ -13,7 +13,7 @@ const sendVerificationEmail = (user, req, res) => {
   const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
     expiresIn: "1d",
   });
-  const url = `${process.env.APP_URL}api/auth/verify-email?token=${token}`;
+  const url = `${process.env.APP_URL}auth/verify-email?token=${token}`;
   transporter.sendMail(
     {
       to: user.email,
