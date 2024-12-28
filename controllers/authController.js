@@ -253,6 +253,7 @@ exports.verify_email = async (req, res) => {
     res.status(400).send("Invalid or expired token");
   }
 };
+
 exports.requestNewVerificationEmail = async (req, res) => {
   const { email } = req.query;
   try {

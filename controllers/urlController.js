@@ -1,8 +1,8 @@
 const Url = require("../models/urlModel");
 const shortid = require("shortid");
 const validator = require("validator");
-exports.shortenUrl = async (req, res) => {
-  let { originalUrl, userId } = req.body;
+exports.publicShortenUrl = async (req, res) => {
+  let { originalUrl } = req.body;
   if (!/^https?:\/\//i.test(originalUrl)) {
     originalUrl = `https://${originalUrl}`;
   }
@@ -10,20 +10,66 @@ exports.shortenUrl = async (req, res) => {
     return res.status(400).json({ message: "Invalid URL" });
   }
   const shortId = shortid.generate();
-  const newUrl = new Url({ shortId, originalUrl, userId });
-  try {
-    await newUrl.save();
-    res.json({ shortId });
-  } catch (err) {
-    if (err.code === 11000) {
-      res.status(409).json({ message: "URL already exists" });
-    } else {
-      res.status(500).json({ message: "Internal Server Error" });
-      console.error(err);
+  const newUrl = new Url({ shortId, originalUrl });
+  const existing = await Url.findOne({ originalUrl });
+
+  if (existing) {
+    res.json({ newLink: existing });
+  } else {
+    try {
+      const newLink = await newUrl.save();
+      res.json({ newLink });
+    } catch (err) {
+      if (err.code === 11000) {
+        res.status(409).json({ message: "URL already exists" });
+      } else {
+        res.status(500).json({ message: "Internal Server Error" });
+        console.error(err);
+      }
     }
   }
 };
 
+exports.privateShortenUrl = async (req, res) => {
+  let { originalUrl, userId, name } = req.body;
+  if (!userId) {
+    return res.status(403).json({ message: "Invalid Access" });
+  }
+  if (!/^https?:\/\//i.test(originalUrl)) {
+    originalUrl = `https://${originalUrl}`;
+  }
+
+  if (!validator.isURL(originalUrl)) {
+    return res.status(400).json({ message: "Invalid URL" });
+  }
+  const shortId = shortid.generate();
+  const newUrl = new Url({ shortId, originalUrl, userId, name });
+  const existing = await Url.findOne({ originalUrl });
+
+  if (existing) {
+    res.json({ newLink: existing, exists: true });
+  } else {
+    try {
+      const newLink = await newUrl.save();
+      res.json({ newLink });
+    } catch (err) {
+      if (err.code === 11000) {
+        res.status(409).json({ message: "URL already exists" });
+      } else {
+        res.status(500).json({ message: "Internal Server Error" });
+        console.error(err);
+      }
+    }
+  }
+};
+exports.modifyUrl = async (req, res) => {
+  const { shortId } = req.params;
+  const { newUrl } = req.body;
+  console.log(shortId, newUrl);
+  //   try{
+  // const query = await Url.findOneAndUpdate({shortId},{originalUrl:newUrl})
+  //   }
+};
 exports.redirectUrl = async (req, res) => {
   const { shortId } = req.params;
   try {
@@ -64,6 +110,18 @@ exports.getAllUrls = async (req, res) => {
     res.json(urls);
   } catch (err) {
     res.status(500).json({ message: "Internal Server Error" });
+    console.error(err);
+  }
+};
+
+exports.getUrlDetail = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const url = await Url.findById(id);
+    console.log(id, url);
+    res.json(url);
+  } catch (err) {
+    res.status(500).json({ message: "Internal Server Error", error: err });
     console.error(err);
   }
 };
