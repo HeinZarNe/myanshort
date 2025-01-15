@@ -1,5 +1,5 @@
-const passport = require("passport");
 const nodemailer = require("nodemailer");
+const crypto = require("crypto");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const User = require("../models/userModel");
@@ -103,20 +103,100 @@ const sendVerificationEmail = (user, req, res) => {
     }
   );
 };
+const sendRestPasswordEmail = async (url, email) => {
+  console.log("email is sending");
 
-// exports.googleLogin = async (req, res) => {
-//   const oauth2Client = new google.auth.OAuth2(
-//     process.env.GOOGLE_CLIENT_ID,
-//     process.env.GOOGLE_CLIENT_SECRET,
-//     "http://localhost:3000/api/auth/google/callback"
-//   );
-
-//   const authUrl = oauth2Client.generateAuthUrl({
-//     scope: ["profile", "email"],
-//   });
-//   z;
-//   res.redirect(authUrl);
-// };
+  await transporter.sendMail(
+    {
+      from: `"MyanAd" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: "Reset Password - MyanAd",
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Password Reset</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    background-color: #f9f9f9;
+                    margin: 0;
+                    padding: 0;
+                    color: #333333;
+                }
+                .container {
+                    max-width: 600px;
+                    margin: 50px auto;
+                    background: #ffffff;
+                    border: 1px solid #dddddd;
+                    border-radius: 8px;
+                    padding: 20px;
+                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                }
+                .header {
+                    text-align: center;
+                    font-size: 24px;
+                    font-weight: bold;
+                    color: #007BFF;
+                    margin-bottom: 20px;
+                }
+                .content {
+                    font-size: 16px;
+                    line-height: 1.6;
+                    text-align: center;
+                }
+                .button-container {
+                    margin-top: 20px;
+                    text-align: center;
+                }
+                .reset-button {
+                    display: inline-block;
+                    background-color: #007BFF;
+                    color: #ffffff !important;
+                    text-decoration: none;
+                    padding: 10px 20px;
+                    border-radius: 4px;
+                    font-size: 16px;
+                    font-weight: bold;
+                }
+                .footer {
+                    margin-top: 30px;
+                    font-size: 12px;
+                    text-align: center;
+                    color: #aaaaaa;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">Reset Your Password</div>
+                <div class="content">
+                    <p>Hello,</p>
+                    <p>You requested a password reset. Please click the button below to reset your password:</p>
+                    <div class="button-container">
+                        <a href="${url}" class="reset-button">Reset Password</a>
+                    </div>
+                    <p>If you did not request a password reset, you can safely ignore this email.</p>
+                </div>
+                <div class="footer">
+                    &copy; 2024 MyanAd. All rights reserved.
+                </div>
+            </div>
+        </body>
+        </html>
+      `,
+    },
+    (err, info) => {
+      if (err) {
+        console.error("Error sending email:", err);
+      } else {
+        console.log("Email sent: " + info.response);
+      }
+    }
+  );
+};
 
 exports.googleCallback = async (req, res, next) => {
   const user = req.user;
@@ -166,6 +246,52 @@ exports.register = async (req, res) => {
   }
 };
 
+exports.forgotPassword = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User Not Found" });
+    }
+
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const resetTokenExpiry = Date.now() + 3600000;
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordExpires = resetTokenExpiry;
+    await user.save();
+    const resetUrl = `${process.env.FRONTEND_URL}reset-password?email=${email}&token=${resetToken}`;
+    sendRestPasswordEmail(resetUrl, email);
+    res.status(200).json({ message: "Email has been sent" });
+  } catch (e) {
+    res.status(500).json({ message: "Password reset email sent" });
+    console.error(e);
+  }
+};
+
+exports.resetPassword = async (req, res) => {
+  const { token, password, email } = req.body;
+  try {
+    const user = await User.findOne({
+      email,
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() },
+    });
+    if (!user) {
+      console.error("Invalid or expired token");
+      return res.status(400).json({ message: "Something Went Wrong" });
+    }
+    user.password = await bcrypt.hash(password, 10);
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+    res.status(200).json({ message: "Password reset successful" });
+  } catch (error) {
+    res.status(500).json({ message: "Internal Server Error", error });
+    console.log(error);
+  }
+};
+
 exports.googleHandleError = async (req, res) => {
   const errorMessage = req.session.authError || "Verification failed";
   delete req.session.authError;
@@ -180,7 +306,11 @@ exports.login = async (req, res) => {
     const user = await User.findOne({
       $or: [{ email: usernameOrEmail }, { username: usernameOrEmail }],
     });
-    if (user && bcrypt.compare(password, user.password)) {
+    if (
+      user &&
+      user.password &&
+      (await bcrypt.compare(password, user.password))
+    ) {
       if (!user.isVerified) {
         return res
           .status(401)

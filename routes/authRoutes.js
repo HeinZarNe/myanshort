@@ -19,6 +19,8 @@ router.post("/login", authController.login);
 router.post("/refresh-token", authController.refreshToken);
 router.get("/google/handle-error", authController.googleHandleError);
 router.get("/request-email-verify", authController.requestNewVerificationEmail);
+router.post("/forgot-password", authController.forgotPassword);
+router.post("/reset-password", authController.resetPassword);
 router.get("/logout", authController.logout);
 router.get("/verify-email", authController.verify_email);
 module.exports = router;

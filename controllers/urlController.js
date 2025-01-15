@@ -1,5 +1,6 @@
 const Url = require("../models/urlModel");
 const shortid = require("shortid");
+const mongoose = require("mongoose");
 const validator = require("validator");
 exports.publicShortenUrl = async (req, res) => {
   let { originalUrl } = req.body;
@@ -63,12 +64,31 @@ exports.privateShortenUrl = async (req, res) => {
   }
 };
 exports.modifyUrl = async (req, res) => {
-  const { shortId } = req.params;
-  const { newUrl } = req.body;
-  console.log(shortId, newUrl);
-  //   try{
-  // const query = await Url.findOneAndUpdate({shortId},{originalUrl:newUrl})
-  //   }
+  const { id } = req.params;
+  const { link, name } = req.body;
+
+  // Check if the ID is a valid ObjectId
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid ID format" });
+  }
+
+  try {
+    const updateFields = {};
+    if (link) updateFields.originalUrl = link;
+    if (name) updateFields.name = name;
+    const updatedUrl = await Url.findByIdAndUpdate(id, updateFields, {
+      new: true,
+    });
+
+    if (!updatedUrl) {
+      return res.status(404).json({ message: "URL not found" });
+    }
+
+    res.json(updatedUrl);
+  } catch (err) {
+    res.status(500).json({ message: "Internal Server Error", error: err });
+    console.error(err);
+  }
 };
 exports.redirectUrl = async (req, res) => {
   const { shortId } = req.params;
@@ -118,7 +138,6 @@ exports.getUrlDetail = async (req, res) => {
   try {
     const { id } = req.params;
     const url = await Url.findById(id);
-    console.log(id, url);
     res.json(url);
   } catch (err) {
     res.status(500).json({ message: "Internal Server Error", error: err });
